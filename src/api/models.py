@@ -26,7 +26,7 @@ class UserManager(BaseUserManager):
     to create `User` objects.
     """
 
-    def create_user(self, username, email, shipping_region_id, password=None, **kwargs):
+    def create_user(self, username, email, shipping_region_id, password=None):
         """Create and return a `User` with an email, username and password."""
         if username is None:
             raise TypeError('Users must have a username.')
