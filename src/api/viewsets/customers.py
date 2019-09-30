@@ -7,7 +7,7 @@ from django.contrib.auth.models import AnonymousUser
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from requests.exceptions import HTTPError
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, exceptions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -19,41 +19,63 @@ from social_django.utils import load_strategy, load_backend
 
 from src.api import errors, serializers
 from src.api.models import Customer
-from src.api.serializers import (CustomerSerializer, UserSerializer, CreateCustomerSerializer, UpdateCustomerSerializer,
+from src.api.serializers import (CustomerSerializer, CreateCustomerSerializer, UpdateCustomerSerializer,
                                  SocialSerializer, CustomerAddressSerializer, LoginSerializer)
 from ..renderers import UserJSONRenderer
 
 from src.api.validators import (
     validate_field_required, validate_email,
     validate_password, validate_shipping_region_id,
-    valiate_email_password_combination)
+    valiate_email_password_combination, validate_phone_number)
 
 logger = logging.getLogger(__name__)
 
 
-@api_view(['GET'])
-def customer(request):
-    """
-    Get a customer by ID. The customer is getting by token
-    """
-    logger.debug("Getting customer")
-    user = request.user
-    if isinstance(user, AnonymousUser):
-        logger.error(errors.USR_10.message)
-        return errors.handle(errors.USR_10)
-    serializer_element = CustomerSerializer(user.customer)
-    logger.debug("Success")
-    return Response(serializer_element.data)
+class CustomerUpdateAPIView(generics.UpdateAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    
+    @swagger_auto_schema(method="PUT", request_body=CreateCustomerSerializer)
+    @api_view(['PUT'])
+    def update(self):
+        user_data = self.data
+        error = validate_password(user_data.get('password', ''))\
+            or validate_email(user_data.get('email', ''), action='update', request=self)\
+            or validate_phone_number(user_data.get('day_phone', ''))\
+            or validate_phone_number(user_data.get('eve_phone', ''))\
+            or validate_phone_number(user_data.get('mob_phone', ''))
+        if error:
+            return error
+        serializer = UpdateCustomerSerializer(
+            self.user,
+            data=user_data,
+            partial=True,
+            context={'request': self}
+        )
+        if serializer.is_valid():
+            self.check_object_permissions(self, user_data)
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@swagger_auto_schema(method="PUT", request_body=UpdateCustomerSerializer)
-@api_view(['PUT'])
-def update_customer(request):
-    """    
-    Update a customer
-    """
-    logger.debug("Updating customer")
-    # TODO: place the code here
+update_customer = CustomerUpdateAPIView.update
+
+
+class CustomerRetrieveAPIView(generics.RetrieveAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = CustomerSerializer
+    def get(self, request):
+        try:
+            customer = request.user
+        except Customer.DoesNotExist:
+            raise exceptions.APIException(
+                detail='Customer does not exist', code=404)
+        serializer = self.serializer_class(customer)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+get_update_customer = CustomerRetrieveAPIView.as_view()
 
 
 # @swagger_auto_schema(method="POST", request_body=CreateCustomerSerializer)
@@ -61,27 +83,27 @@ class RegistrationAPIView(generics.CreateAPIView):
     # Allow any user (authenticated or not) to hit this endpoint.
     permission_classes = (permissions.AllowAny,)
     renderer_classes = (UserJSONRenderer,)
-    serializer_class = CreateCustomerSerializer
-    # @swagger_auto_schema(method="POST", request_body=CreateCustomerSerializer)
-    # @api_view(['POST'])
+    @swagger_auto_schema(method="POST", request_body=CreateCustomerSerializer)
+    @api_view(['POST'])
 
-    def post(self, request):
-        user = request.data
+    def post(self):
+        serializer_class = CreateCustomerSerializer
+        user = self.data
         error = validate_field_required(user, 'username')\
             or validate_field_required(user, 'email')\
             or validate_field_required(user, 'password')\
-            or validate_email(user.get('email', ''))\
+            or validate_email(user.get('email', ''), action='signup')\
             or validate_password(user.get('password', ''))\
             or validate_shipping_region_id(user.get('shipping_region_id', ''))
         if error:
             return error
-        serializer = self.serializer_class(data=user)
+        serializer = serializer_class(data=user)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-create_customer = RegistrationAPIView.as_view()
+create_customer = RegistrationAPIView.post
 
 
 class LoginAPIView(generics.CreateAPIView):
@@ -92,23 +114,24 @@ class LoginAPIView(generics.CreateAPIView):
     logger.debug("Login a customer")
     permission_classes = (permissions.AllowAny,)
     renderer_classes = (UserJSONRenderer,)
-    serializer_class = LoginSerializer
-
-    def post(self, request):
-        user = request.data
+    @swagger_auto_schema(method="POST", request_body=LoginSerializer)
+    @api_view(['POST'])
+    def post(self):
+        serializer_class = LoginSerializer
+        user = self.data
         error = validate_field_required(user, 'email')\
             or validate_field_required(user, 'password')\
-            or validate_email(user.get('email', ''), signup=False)\
+            or validate_email(user.get('email', ''), action='login')\
             or valiate_email_password_combination(user.get('email', ''),
                                                   user.get('password', ''))
         if error:
             return error
-        serializer = self.serializer_class(data=user)
+        serializer = serializer_class(data=user)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validate(data=user), status=status.HTTP_200_OK)
 
 
-token_obtain = LoginAPIView.as_view()
+token_obtain = LoginAPIView.post
 
 
 class SocialLoginView(generics.GenericAPIView):
