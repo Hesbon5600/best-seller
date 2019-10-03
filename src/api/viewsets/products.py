@@ -1,5 +1,5 @@
 import logging
-
+from datetime import datetime
 from django.contrib.auth.models import AnonymousUser
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -10,9 +10,9 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from src.api import errors
-from src.api.models import Category, Product, Review
-from src.api.serializers import ProductSerializer, ReviewSerializer
-
+from src.api.models import Category, Product, Review, ProductCategory, Department, Review
+from src.api.serializers import ProductSerializer, ReviewSerializer, ReviewSerializer
+from src.api.validators import validate_review_and_rating
 logger = logging.getLogger(__name__)
 
 
@@ -46,20 +46,42 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Get a list of Products by Categories
         """
-        # TODO: place the code here
+
+        if not ProductCategory.objects.filter(category_id=category_id):
+            return errors.handle(errors.CAT_01)
+        product_ids = [cat.product_id for cat in ProductCategory.objects.filter(
+            category_id=category_id).all()]
+        data = self.serializer_class(Product.objects.filter(
+            product_id__in=product_ids).all(), many=True).data
+        return self.paginator.get_paginated_response(
+            self.paginator.paginate_queryset(data, request))
 
     def get_products_by_department(self, request, department_id):
         """
         Get a list of Products of Departments
         """
-        # TODO: place the code here
+
+        if not Category.objects.filter(department_id=department_id):
+            return errors.handle(errors.DEP_02)
+        product_ids = [ca.product_id for ca in ProductCategory.objects.filter
+                       (category_id__in=[
+                           category.category_id for category in Category.objects.filter(
+                               department_id=department_id).all()]).all()]
+        data = self.serializer_class(Product.objects.filter(
+            product_id__in=product_ids).all().order_by('product_id'), many=True).data
+        return self.paginator.get_paginated_response(
+            self.paginator.paginate_queryset(data, request))
 
     @action(methods=['GET'], detail=True, url_path='details')
     def details(self, request, pk):
         """
         Get details of a Product
         """
-        # TODO: place the code here
+        product = Product.objects.filter(product_id=pk)
+        if not product:
+            return errors.handle(errors.PRO_01)
+
+        return Response(self.serializer_class(product).data, status=200)
 
     @action(methods=['GET'], detail=True, url_path='locations')
     def locations(self, request, pk):
@@ -70,10 +92,18 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(methods=['GET'], detail=True, url_path='reviews', url_name='List reviews')
     def reviews(self, request, pk):
+        """Return a list of reviews
+        Args:
+            request (obj): request onject
+            pk (int): product id
+        Returns:
+            list of the product's reviews
         """
-        Return a list of reviews
-        """
-        # TODO: place the code here
+        serializer_class = ReviewSerializer
+        if not Product.objects.filter(product_id=pk):
+            return errors.handle(errors.PRO_01)
+        return Response(serializer_class(
+            Review.objects.filter(product_id=pk).all(), many=True).data, status=200)
 
     @swagger_auto_schema(method='POST', request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
@@ -84,7 +114,26 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     ))
     @action(methods=['POST'], detail=True, url_path='review', url_name='Create review')
     def review(self, request, pk):
+        """ Create a new review
+        Args:
+            request (obj): request onject
+            pk (int): product id
+        Returns:
+            The created product review
         """
-        Create a new review
-        """
-        # TODO: place the code here
+        serializer_class = ReviewSerializer
+        if isinstance(request.user, AnonymousUser):
+            return errors.handle(errors.USR_10)
+        if not Product.objects.filter(product_id=pk):
+            return errors.handle(errors.PRO_01)
+        data = request.data
+        error = validate_review_and_rating(data)
+        if error:
+            return error
+        data['product_id'] = pk
+        data['created_on'] = datetime.now()
+        data['customer_id'] = request.user.customer_id
+        serializer = serializer_class(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=201)

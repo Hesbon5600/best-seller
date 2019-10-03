@@ -20,7 +20,7 @@ from social_django.utils import load_strategy, load_backend
 from src.api import errors, serializers
 from src.api.models import Customer
 from src.api.serializers import (CustomerSerializer, CreateCustomerSerializer, UpdateCustomerSerializer,
-                                 SocialSerializer, CustomerAddressSerializer, LoginSerializer)
+                                 SocialSerializer, CustomerAddressSerializer, LoginSerializer, ReviewSerializer)
 from ..renderers import UserJSONRenderer
 
 from src.api.validators import (
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 class CustomerUpdateAPIView(generics.UpdateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
-    
+
     @swagger_auto_schema(method="PUT", request_body=CreateCustomerSerializer)
     @api_view(['PUT'])
     def update(self):
@@ -65,6 +65,7 @@ update_customer = CustomerUpdateAPIView.update
 class CustomerRetrieveAPIView(generics.RetrieveAPIView):
     permission_classes = (permissions.IsAuthenticated,)
     serializer_class = CustomerSerializer
+
     def get(self, request):
         try:
             customer = request.user
@@ -102,7 +103,10 @@ class RegistrationAPIView(generics.CreateAPIView):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
 create_customer = RegistrationAPIView.post
+
+
 class LoginAPIView(generics.CreateAPIView):
     """
     Takes a set of user credentials and returns an access 
@@ -207,16 +211,6 @@ class SocialLoginView(generics.GenericAPIView):
             }, 200)
             logger.debug("Success")
             return response
-
-
-@permission_classes((IsAuthenticated,))
-@swagger_auto_schema(method="PUT", request_body=CustomerAddressSerializer)
-@api_view(['PUT'])
-def update_address(request):
-    """    
-    Update the address from customer
-    """
-    # TODO: place the code here
 
 
 class CustomerAddressUpdateAPIView(generics.UpdateAPIView):

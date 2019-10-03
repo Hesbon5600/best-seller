@@ -48,7 +48,7 @@ def empty_field_value(code, field):
                                       _status=404, field=field))
 
 
-def validate_field_required(data, field):
+def validate_field_required(data, field, code='USR_02'):
     """Check if the field exists in the requeest object
 
     Args:
@@ -57,9 +57,9 @@ def validate_field_required(data, field):
     Returns:
         ValidationError: Raise the relevant validation error if the field does not exist
     """
-    if not data.get(field, ''):
+    if field not in data:
         return errors.handle(errors.Error(
-            code="USR_02",
+            code=f"{code}",
             message="This field is required",
             _status=400,
             field=field))
@@ -128,6 +128,7 @@ def validate_address(address, address_type):
         error = invalid_('USR_16', 'address', f'{address_type}')
     return error
 
+
 def validate_extra_fields(field, field_value, code):
     """Validate the field for empty value and non string
     Args:
@@ -159,6 +160,32 @@ def validate_shipping_region_id(id_):
 
     if not ShippingRegion.objects.filter(shipping_region_id=id_).exists():
         return does_not_exist('USR_09', 'Shipping Region ID ', 'shipping_region')
+
+
+def validate_review_and_rating(data):
+    """Validate the customer review and rating
+    Args:
+        data (dict): the request data
+    Returns:
+        ValidationError: Raise the relevant validation error 
+        if the fields are missing or invalid
+    """
+    error = None
+    review_none, rating_none = validate_field_required(
+        data, 'review', 'COM_01'), validate_field_required(data, 'rating', 'COM_01')
+    if review_none or rating_none:
+        error = review_none or rating_none
+    review = data.get('review', '')
+    rating = data.get('rating', '')
+    if not isinstance(review, str):
+        error = errors.handle(
+            errors.Error(code="COM_10", message="Review must be a string",
+                         _status=400))
+    if not isinstance(rating, int) or (rating < 0 or rating > 5):
+        error = errors.handle(
+            errors.Error(code="COM_10", message="Review must be a number between 0 and 5",
+                         _status=400))
+    return error
 
 
 def valiate_email_password_combination(email, password):
