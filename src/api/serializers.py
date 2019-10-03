@@ -207,10 +207,10 @@ class CustomerAddressSerializer(serializers.Serializer):
     postal_code = serializers.CharField(max_length=256, required=True)
     country = serializers.CharField(max_length=256, required=True)
     shipping_region_id = serializers.IntegerField(required=True)
+    password = serializers.CharField(required=False, write_only=True)
 
     class Meta:
-        fields = ('address_1', 'address_2', 'city ', 'region',
-                  'postal_code', 'country', 'shipping_region_id')
+        fields = '__all__'
 
 
 class CreditCardSerializer(serializers.Serializer):

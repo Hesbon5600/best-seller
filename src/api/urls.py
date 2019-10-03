@@ -7,7 +7,7 @@ from src.api.viewsets.attribute import AttributeViewSet
 #from src.api.viewsets.category import CategoryViewSet 
 # TODO: Implement category
 from src.api.viewsets.customers import create_customer, token_obtain, SocialLoginView, update_address, \
-    update_credit_card, update_customer, get_update_customer
+    update_credit_card, update_customer, get_customer
 from src.api.viewsets.department import DepartmentViewSet
 from src.api.viewsets.orders import create_order, order, orders, order_details
 from src.api.viewsets.products import ProductViewSet
@@ -40,7 +40,7 @@ urlpatterns = [
     path('customer/update', update_customer),
 
     path('customers', create_customer, name="Create a customer"),
-    path('customers/', get_update_customer, name="Get or updatee a customer"),
+    path('customer', get_customer, name="Get or updatee a customer"),
     path('customers/login', token_obtain, name="Login a customer"),
     path('customers/facebook', SocialLoginView.as_view()),
     path('customers/address', update_address),

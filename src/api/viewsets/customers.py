@@ -26,7 +26,8 @@ from ..renderers import UserJSONRenderer
 from src.api.validators import (
     validate_field_required, validate_email,
     validate_password, validate_shipping_region_id,
-    valiate_email_password_combination, validate_phone_number)
+    valiate_email_password_combination, validate_phone_number,
+    validate_extra_fields)
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ class CustomerRetrieveAPIView(generics.RetrieveAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-get_update_customer = CustomerRetrieveAPIView.as_view()
+get_customer = CustomerRetrieveAPIView.as_view()
 
 
 # @swagger_auto_schema(method="POST", request_body=CreateCustomerSerializer)
@@ -85,7 +86,6 @@ class RegistrationAPIView(generics.CreateAPIView):
     renderer_classes = (UserJSONRenderer,)
     @swagger_auto_schema(method="POST", request_body=CreateCustomerSerializer)
     @api_view(['POST'])
-
     def post(self):
         serializer_class = CreateCustomerSerializer
         user = self.data
@@ -102,10 +102,7 @@ class RegistrationAPIView(generics.CreateAPIView):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-
 create_customer = RegistrationAPIView.post
-
-
 class LoginAPIView(generics.CreateAPIView):
     """
     Takes a set of user credentials and returns an access 
@@ -220,6 +217,36 @@ def update_address(request):
     Update the address from customer
     """
     # TODO: place the code here
+
+
+class CustomerAddressUpdateAPIView(generics.UpdateAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    serializer_class = CustomerAddressSerializer
+
+    def update(self, request):
+        user_data = request.data
+        error = validate_extra_fields('address_1', user_data.get('address_1', ''), 'USR_16')\
+            or validate_extra_fields('address_2', user_data.get('address_2', ''), 'USR_16')\
+            or validate_extra_fields('city', user_data.get('city', ''), 'USR_17')\
+            or validate_extra_fields('region', user_data.get('region', ''), 'USR_18')\
+            or validate_extra_fields('postal_code', user_data.get('postal_code', ''), 'postal_code')\
+            or validate_shipping_region_id(user_data.get('shipping_region_id', ''))
+        if error:
+            return error
+        serializer = UpdateCustomerSerializer(
+            request.user,
+            data=user_data,
+            partial=True,
+            context={'request': request}
+        )
+        if serializer.is_valid():
+            self.check_object_permissions(request, user_data)
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+update_address = CustomerAddressUpdateAPIView.as_view()
 
 
 def count_consecutive(num):
