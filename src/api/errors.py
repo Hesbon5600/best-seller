@@ -52,6 +52,9 @@ USR_08 = Error(code="USR_08", message="This is an invalid Credit Card",
 USR_09 = Error(code="USR_09", message="The Shipping Region ID is not number",
                _status=400, field='shipping_region')
 USR_10 = Error(code="USR_10", message="You must login first", _status=400)
+USR_13 = Error(code="USR_13", message='Token expired. Please login to get a new token', _status=403)
+USR_14 = Error(code="USR_14", message='Authorization failed due to an Invalid token', _status=403)
+USR_15 = Error(code="USR_15", message="Cannot verify the token provided as the expected issuer does not match.", _status=403)
 USR_11 = Error(code="USR_11",
               message='Password must be at least 8 characters long, must have at least a number, and a least an uppercase and a lowercase letter',
               _status=400, field='password')

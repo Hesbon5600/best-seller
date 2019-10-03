@@ -19,18 +19,26 @@ def validate_field_required(data, field):
             field=field))
 
 
-def validate_email(email, signup=True):
-    if signup and Customer.objects.filter(email=email).exists():
-        return errors.handle(errors.USR_04)
+def validate_email(email, action, request=None):
     regex = r"[^@]+@[^@]+\.[^@]+"
-    if not re.match(regex, email):
+    if email and not re.match(regex, email):
         return errors.handle(errors.USR_03)
+    if action == 'signup' and Customer.objects.filter(email=email).exists():
+        return errors.handle(errors.USR_04)
+    if action == 'update' and email:
+        if Customer.objects.filter(email=email) == request.user:
+            return errors.handle(errors.USR_04)
 
 
 def validate_password(password):
     regex = r"^(?=.{8,}$)(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9]).*"
-    if not re.match(regex, password):
+    if password and not re.match(regex, password):
         return errors.handle(errors.USR_11)
+
+
+def validate_phone_number(phone_no):
+    if phone_no and '+' not in phone_no or len(phone_no) < 8:
+        return errors.handle(errors.USR_06)
 
 
 def validate_shipping_region_id(id_):

@@ -11,12 +11,6 @@ from src.api.models import Department, Category, Attribute, AttributeValue, Prod
 from src.turing_backend.authentication.token import generate_token
 
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = '__all__'
-
-
 class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Department
@@ -57,10 +51,6 @@ class ProductSerializer(serializers.ModelSerializer):
                   'price', 'discounted_price', 'thumbnail')
 
 
-class CustomerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Customer
-        fields = fields = ('email', 'name', 'password')
 
 
 class OrdersSerializer(serializers.ModelSerializer):
@@ -117,18 +107,20 @@ class ShippingRegionSerializer(serializers.ModelSerializer):
         model = ShippingRegion
         fields = '__all__'
 
+class CustomerSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(required=True, write_only=True)
+    class Meta:
+        model = Customer
+        fields = '__all__'
 
-class CreateCustomerSerializer(UserSerializer, serializers.ModelSerializer):
+class CreateCustomerSerializer(serializers.ModelSerializer):
     """Serializers registration requests and creates a new user."""
     # Ensure email is provided and is unique
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
     username = serializers.CharField(required=True)
     shipping_region_id = serializers.IntegerField(required=True)
-    token = serializers.CharField(required=False)
-
-    # def get_token(self, obj):
-    #     return generate_token(obj.email)
+    token = serializers.ListField(read_only=True)
 
     class Meta:
         model = Customer
@@ -143,20 +135,8 @@ class CreateCustomerSerializer(UserSerializer, serializers.ModelSerializer):
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.CharField(max_length=255)
-    username = serializers.CharField(max_length=255, read_only=True)
     password = serializers.CharField(max_length=128, write_only=True)
-    token = serializers.CharField(read_only=True)
-    customer_id = serializers.IntegerField(read_only=True),
-    address_1 = serializers.CharField(read_only=True),
-    address_2 = serializers.CharField(read_only=True),
-    city = serializers.CharField(read_only=True),
-    region = serializers.CharField(read_only=True),
-    postal_code = serializers.CharField(read_only=True),
-    shipping_region_id = serializers.IntegerField(read_only=True),
-    credit_card = serializers.CharField(read_only=True),
-    day_phone = serializers.CharField(read_only=True),
-    eve_phone = serializers.CharField(read_only=True),
-    mob_phone = serializers.CharField(read_only=True),
+    token = serializers.ListField(read_only=True)
 
     def validate(self, data):
         """ The `validate` method is where we make sure that the current
@@ -194,26 +174,16 @@ class LoginSerializer(serializers.Serializer):
             'token': user.token,
         }
 
-
 class UpdateCustomerSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(allow_blank=True, required=False, write_only=True)
+    name = serializers.CharField(allow_blank=True, required=False)
+    email = serializers.CharField(allow_blank=True, required=False)
+    day_phone = serializers.CharField(allow_blank=True, required=False)
+    eve_phone = serializers.CharField(allow_blank=True, required=False)
+    mob_phone = serializers.CharField(allow_blank=True, required=False)
     class Meta:
         model = Customer
-        fields = ('name', 'email', 'password',
-                  'day_phone', 'eve_phone', 'mob_phone')
-
-
-# class TokenObtainPairPatchedSerializer(TokenObtainPairSerializer):
-
-#     def validate(self, attrs):
-#         data = super().validate(attrs)
-#         refresh = self.get_token(self.user)
-#         if hasattr(self.user, 'customer'):
-#             data['customer'] = CustomerSerializer(self.user.customer).data
-#         data['access'] = str(refresh.access_token)
-#         data['expires_in'] = "24h"
-#         data.pop('refresh')
-
-#         return data
+        fields = '__all__'
 
 
 class SocialSerializer(serializers.Serializer):

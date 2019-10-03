@@ -11,12 +11,11 @@ def generate_token(email):
     This method generates and return it as a string.
     """
     date = datetime.now() + timedelta(hours=24)
-
     payload = {
-        'username': email,
-        'exp': int(date.strftime('%S'))
+        'email': email,
+        'exp': int(date.strftime('%s'))
     }
 
     token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 
-    return token.decode('utf-8'), str(timedelta(hours=payload['exp']))
+    return token.decode('utf-8'), str(timedelta(microseconds=payload['exp']))
