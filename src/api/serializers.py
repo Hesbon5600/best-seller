@@ -51,8 +51,6 @@ class ProductSerializer(serializers.ModelSerializer):
                   'price', 'discounted_price', 'thumbnail')
 
 
-
-
 class OrdersSerializer(serializers.ModelSerializer):
     class Meta:
         model = Orders
@@ -93,7 +91,8 @@ class TaxSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
-        fields = ('product_id', 'review', 'customer_id', 'rating')
+        fields = ('product_id', 'review',
+                  'customer_id', 'rating', 'created_on')
 
 
 class ShippingSerializer(serializers.ModelSerializer):
@@ -107,11 +106,14 @@ class ShippingRegionSerializer(serializers.ModelSerializer):
         model = ShippingRegion
         fields = '__all__'
 
+
 class CustomerSerializer(serializers.ModelSerializer):
     password = serializers.CharField(required=True, write_only=True)
+
     class Meta:
         model = Customer
         fields = '__all__'
+
 
 class CreateCustomerSerializer(serializers.ModelSerializer):
     """Serializers registration requests and creates a new user."""
@@ -174,13 +176,16 @@ class LoginSerializer(serializers.Serializer):
             'token': user.token,
         }
 
+
 class UpdateCustomerSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(allow_blank=True, required=False, write_only=True)
+    password = serializers.CharField(
+        allow_blank=True, required=False, write_only=True)
     name = serializers.CharField(allow_blank=True, required=False)
     email = serializers.CharField(allow_blank=True, required=False)
     day_phone = serializers.CharField(allow_blank=True, required=False)
     eve_phone = serializers.CharField(allow_blank=True, required=False)
     mob_phone = serializers.CharField(allow_blank=True, required=False)
+
     class Meta:
         model = Customer
         fields = '__all__'
