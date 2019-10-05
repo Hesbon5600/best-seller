@@ -187,6 +187,7 @@ class Orders(models.Model):
     reference = models.CharField(max_length=50, blank=True, null=True)
     shipping_id = models.IntegerField(blank=True, null=True)
     tax_id = models.IntegerField(blank=True, null=True)
+    cart_id = models.CharField(max_length=100)
 
     class Meta:
         managed = False

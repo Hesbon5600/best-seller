@@ -37,6 +37,11 @@ urlpatterns = [
     path('shoppingcart/removeProduct/<int:item_id>', remove_product, name="Remove product from shopping cart"),
     path('shoppingcart/total/<str:cart_id>', total_amount, name="get total amount from shopping cart"),
     
+    path('orders', create_order, name="creates an order for a customer."),
+    path('orders/<int:order_id>', order, name="get a single order with list of order items"),
+    path('orders/shortDetail/<int:order_id>', order_details, name="get a short details of an order"),
+    path('orders/inCustomer', orders, name="get orders placed by a customer."),
+    
     path('attributes/values/<int:attribute_id>/', AttributeViewSet.as_view({"get": "get_values_from_attribute"})),
     path('attributes/inProduct/<int:product_id>/', AttributeViewSet.as_view({"get": "get_attributes_from_product"})),
 
@@ -45,12 +50,12 @@ urlpatterns = [
     path('products/location/<int:pk>', ProductViewSet.as_view({"get": "locations"})),
 
     path('customer/update', update_customer),
-    path('customers', get_customer, name="Get a customer"),
+    path('customer/address', update_address),
+    path('customer/creditCard', update_credit_card),
 
+    path('customers', get_customer, name="Get a customer"),
     path('customers', create_customer, name="Create a customer"),
     path('customers/login', token_obtain, name="Login a customer"),
     path('customers/facebook', SocialLoginView.as_view()),
-    path('customer/address', update_address),
-    path('customer/creditCard', update_credit_card),
 
 ]

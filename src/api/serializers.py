@@ -3,7 +3,6 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth import authenticate
 from django.utils import timezone
-
 # from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from src.api.models import Department, Category, Attribute, AttributeValue, Product, Customer, Shipping, Tax, ShoppingCart, \
@@ -53,6 +52,30 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class OrdersSerializer(serializers.ModelSerializer):
+
+    def to_representation(self, obj):
+        """
+        Overide the default django to_representation
+        """
+        shopping_cart = ShoppingCart.objects.filter(cart_id=obj.cart_id).all()
+        data = {}
+        order_items = []
+        data['order_id'] = obj.pk
+        for cart in shopping_cart:
+            prod = Product.objects.get(pk=cart.product_id)
+            order_items.append(
+                {
+                    "product_id": prod.product_id,
+                    "attributes": cart.attributes,
+                    "product_name": prod.name,
+                    "quantity": cart.quantity,
+                    "unit_cost": prod.price,
+                    "subtotal": prod.price * cart.quantity if
+                    float(prod.discounted_price) == 0 else
+                    prod.discounted_price * cart.quantity
+                })
+        data['order_items'] = order_items
+        return data
     class Meta:
         model = Orders
         fields = '__all__'
@@ -111,6 +134,7 @@ class ShoppingcartSerializer(serializers.ModelSerializer):
             }
             result.append(output)
         return result
+
     class Meta:
         model = ShoppingCart
         fields = ('cart_id', 'attributes', 'product_id',
@@ -218,7 +242,7 @@ class LoginSerializer(serializers.Serializer):
          instance of `LoginSerializer` has "valid". In the case of logging a
          user in, this means validating that they've provided an email
          and password and that this combination matches one of the users in
-         our database. 
+         our database.
          """
         email = data.get('email', None)
         password = data.get('password', None)
