@@ -21,7 +21,6 @@ from src.api import errors, serializers
 from src.api.models import Customer
 from src.api.serializers import (CustomerSerializer, CreateCustomerSerializer, UpdateCustomerSerializer,
                                  SocialSerializer, CustomerAddressSerializer, LoginSerializer, ReviewSerializer)
-from ..renderers import UserJSONRenderer
 
 from src.api.validators import (
     validate_field_required, validate_email,
@@ -84,7 +83,6 @@ get_customer = CustomerRetrieveAPIView.as_view()
 class RegistrationAPIView(generics.CreateAPIView):
     # Allow any user (authenticated or not) to hit this endpoint.
     permission_classes = (permissions.AllowAny,)
-    renderer_classes = (UserJSONRenderer,)
     @swagger_auto_schema(method="POST", request_body=CreateCustomerSerializer)
     @api_view(['POST'])
     def post(self):
@@ -114,7 +112,6 @@ class LoginAPIView(generics.CreateAPIView):
     """
     logger.debug("Login a customer")
     permission_classes = (permissions.AllowAny,)
-    renderer_classes = (UserJSONRenderer,)
     @swagger_auto_schema(method="POST", request_body=LoginSerializer)
     @api_view(['POST'])
     def post(self):
@@ -129,7 +126,7 @@ class LoginAPIView(generics.CreateAPIView):
             return error
         serializer = serializer_class(data=user)
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.validate(data=user), status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 token_obtain = LoginAPIView.post

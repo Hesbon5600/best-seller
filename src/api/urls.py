@@ -29,21 +29,28 @@ router.register(r'shipping/regions', ShippingRegionViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    # TODO: implement the category, shopping cart and orders
-
+    path('shoppingcart/generateUniqueId', generate_cart_id, name="Generate cart ID"),
+    path('shoppingcart/add', add_products, name="add product to the shopping cart"),
+    path('shoppingcart/<str:cart_id>', get_products, name="returns a list of items in the shopping cart"),
+    path('shoppingcart/update/<int:item_id>', update_quantity, name="update quantity in the shopping cart"),
+    path('shoppingcart/empty/<str:cart_id>', empty_cart, name="Delete the shopping cart"),
+    path('shoppingcart/removeProduct/<int:item_id>', remove_product, name="Remove product from shopping cart"),
+    path('shoppingcart/total/<str:cart_id>', total_amount, name="get total amount from shopping cart"),
+    
     path('attributes/values/<int:attribute_id>/', AttributeViewSet.as_view({"get": "get_values_from_attribute"})),
     path('attributes/inProduct/<int:product_id>/', AttributeViewSet.as_view({"get": "get_attributes_from_product"})),
 
     path('products/inCategory/<int:category_id>', ProductViewSet.as_view({"get": "get_products_by_category"})),
     path('products/inDepartment/<int:department_id>', ProductViewSet.as_view({"get": "get_products_by_department"})),
+    path('products/location/<int:pk>', ProductViewSet.as_view({"get": "locations"})),
 
     path('customer/update', update_customer),
+    path('customers', get_customer, name="Get a customer"),
 
     path('customers', create_customer, name="Create a customer"),
-    path('customer', get_customer, name="Get or updatee a customer"),
     path('customers/login', token_obtain, name="Login a customer"),
     path('customers/facebook', SocialLoginView.as_view()),
-    path('customers/address', update_address),
-    path('customers/creditCard', update_credit_card),
+    path('customer/address', update_address),
+    path('customer/creditCard', update_credit_card),
 
 ]

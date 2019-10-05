@@ -1,6 +1,6 @@
 import re
 from . import errors
-from src.api.models import Customer, ShippingRegion
+from src.api.models import Customer, ShippingRegion, Product, ShoppingCart
 from django.contrib.auth import authenticate
 
 
@@ -100,6 +100,19 @@ def validate_password(password):
         return errors.handle(errors.USR_11)
 
 
+def valiate_email_password_combination(email, password):
+    """Validate the shipping email and password combination
+    Args:
+        email (str): email
+        password (str): password
+    Returns:
+        ValidationError: Raise a validation error 
+        if the email and password combination is invalid
+    """
+    if not authenticate(username=email.strip(), password=password.strip()):
+        return errors.handle(errors.USR_01)
+
+
 def validate_phone_number(phone_no):
     """Validate the phone number
     Args:
@@ -162,6 +175,26 @@ def validate_shipping_region_id(id_):
         return does_not_exist('USR_09', 'Shipping Region ID ', 'shipping_region')
 
 
+def validate_cart_ids(id_, attribute):
+    """Validate the cart id or cart item id
+    Args:
+        id_ (int/str): cart id to be validated
+        attribute (str): cart id to be validated
+    Returns:
+        ValidationError: Raise the relevant validation error 
+        if the id does not exis in the db
+    """
+    error = None
+    if attribute == 'cart_id' and \
+        not ShoppingCart.objects.filter(cart_id=id_).exists():
+        error = errors.handle(errors.SHP_01)
+    if attribute == 'item_id' and \
+        not ShoppingCart.objects.filter(item_id=id_).exists():
+        error = errors.Error(code="COM_10", message="Don't exist shopping cart item with this item_id",
+                         _status=400)
+    return error
+
+
 def validate_review_and_rating(data):
     """Validate the customer review and rating
     Args:
@@ -188,14 +221,56 @@ def validate_review_and_rating(data):
     return error
 
 
-def valiate_email_password_combination(email, password):
-    """Validate the shipping email and password combination
+def validate_shopping_cart_input_types(data):
+    """Validate the shopping cart input types
     Args:
-        email (str): email
-        password (str): password
+        data (dict): the request data
     Returns:
-        ValidationError: Raise a validation error 
-        if the email and password combination is invalid
+        ValidationError: Raise the relevant validation error 
+        if the fields are invalid
     """
-    if not authenticate(username=email.strip(), password=password.strip()):
-        return errors.handle(errors.USR_01)
+    error = None
+    cart_id = data.get('cart_id', '')
+    product_id = data.get('product_id', '')
+    attributes = data.get('attributes', '')
+    quantity = data.get('quantity', '')
+    if not isinstance(cart_id, str):
+        error = errors.handle(
+            errors.Error(code="COM_10", message="Cart ID must be a string",
+                         _status=400))
+    if not isinstance(attributes, str):
+        error = errors.handle(
+            errors.Error(code="COM_10", message="Attributes must be a string",
+                         _status=400))
+    if not isinstance(product_id, int):
+        error = errors.handle(
+            errors.Error(code="COM_10", message="Product ID must be a number",
+                         _status=400))
+    if not isinstance(quantity, int) or quantity < 1:
+        error = errors.handle(
+            errors.Error(code="COM_10", message="Quantity must be a number not less than 1",
+                         _status=400))
+    if not Product.objects.filter(product_id=product_id):
+        error = errors.handle(errors.PRO_01)
+    return error
+
+
+def validate_shopping_cart_input(data):
+    """Validate the shopping cart data
+    Args:
+        data (dict): the request data
+    Returns:
+        ValidationError: Raise the relevant validation error 
+        if the fields are missing or invalid
+    """
+    error = None
+    cart_id_err, product_id_err, attributes_err, quantity_err = validate_field_required(
+        data, 'cart_id', 'COM_01'), validate_field_required(data, 'product_id', 'COM_01'),\
+        validate_field_required(data, 'attributes', 'COM_01'),\
+        validate_field_required(data, 'quantity', 'COM_01')
+    if cart_id_err or product_id_err or attributes_err or quantity_err:
+        error = cart_id_err or product_id_err or attributes_err or quantity_err
+    invalid = validate_shopping_cart_input_types(data)
+    if invalid:
+        error = invalid
+    return error
