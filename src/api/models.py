@@ -264,7 +264,7 @@ class ShippingRegion(models.Model):
 
 class ShoppingCart(models.Model):
     item_id = models.AutoField(primary_key=True)
-    cart_id = models.CharField(max_length=32)
+    cart_id = models.CharField(max_length=100)
     product_id = models.IntegerField()
     attributes = models.CharField(max_length=1000)
     quantity = models.IntegerField()

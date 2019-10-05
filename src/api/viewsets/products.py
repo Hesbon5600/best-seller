@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from django.utils import timezone
 from django.contrib.auth.models import AnonymousUser
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -8,6 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework import status
 
 from src.api import errors
 from src.api.models import Category, Product, Review, ProductCategory, Department, Review
@@ -22,6 +23,19 @@ class ProductSetPagination(PageNumberPagination):
     page_size_query_param = 'limit'
     page_size_query_description = 'Limit per page, Default: 20.'
     max_page_size = 200
+
+    def get_paginated_response(self, data):
+        return Response(
+            {
+                "paginationMeta":   {
+                    "currentPage": self.page.number,
+                    "currentPageSize": len(data),
+                    "totalPages": self.page.paginator.num_pages,
+                    "totalRecords": self.page.paginator.count,
+                },
+                'rows': data
+            }
+        )
 
 
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
@@ -81,14 +95,27 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         if not product:
             return errors.handle(errors.PRO_01)
 
-        return Response(self.serializer_class(product).data, status=200)
+        return Response(self.serializer_class(product).data, status=status.HTTP_200_OK)
 
     @action(methods=['GET'], detail=True, url_path='locations')
     def locations(self, request, pk):
         """
-        Get locations of a Product
+        Get locations of a Productr
         """
-        # TODO: place the code here
+        product_category = ProductCategory.objects.get(product_id=pk)
+        category = Category.objects.get(pk=product_category.category_id)
+
+        department = Department.objects.filter(
+            pk=category.department_id).all()
+        data = []
+        for each in department:
+            data.append({
+                'category_id': category.category_id,
+                'category_name': category.name,
+                'department_id': each.department_id,
+                'department_name': each.name
+            })
+        return Response(data=data, status=status.HTTP_200_OK)
 
     @action(methods=['GET'], detail=True, url_path='reviews', url_name='List reviews')
     def reviews(self, request, pk):
@@ -103,7 +130,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         if not Product.objects.filter(product_id=pk):
             return errors.handle(errors.PRO_01)
         return Response(serializer_class(
-            Review.objects.filter(product_id=pk).all(), many=True).data, status=200)
+            Review.objects.filter(product_id=pk).all(), many=True).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(method='POST', request_body=openapi.Schema(
         type=openapi.TYPE_OBJECT,
@@ -131,9 +158,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         if error:
             return error
         data['product_id'] = pk
-        data['created_on'] = datetime.now()
+        data['created_on'] = timezone.now()
         data['customer_id'] = request.user.customer_id
         serializer = serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(serializer.data, status=201)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth import authenticate
+from django.utils import timezone
 
 # from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
@@ -77,9 +78,58 @@ class OrdersSaveSerializer(serializers.ModelSerializer):
 
 
 class ShoppingcartSerializer(serializers.ModelSerializer):
+    added_on = serializers.DateTimeField(
+        required=False, default=timezone.now())
+    buy_now = serializers.IntegerField(required=False, default=0)
+    item_id = serializers.IntegerField(required=False)
+
+    def shopping_cart_products(self, data):
+        """Get products in a shopping cart
+        Args:
+            data (dict): model object
+        Returns:
+            (dict): serialized shopping cart
+        """
+        result = []
+        for cart_item in data:
+            product = Product.objects.get(product_id=cart_item.product_id)
+            sub_price = product.price * cart_item.quantity if \
+                float(product.discounted_price) == 0 else \
+                product.discounted_price * cart_item.quantity
+            output = {
+                "item_id": cart_item.item_id,
+                "cart_id": cart_item.cart_id,
+                "name": product.name,
+                "attributes": cart_item.attributes,
+                "product_id": cart_item.product_id,
+                "image": product.image,
+                "price": product.price,
+                "discounted_price": product.discounted_price,
+                "quantity": cart_item.quantity,
+                "subtotal": sub_price
+
+            }
+            result.append(output)
+        return result
     class Meta:
         model = ShoppingCart
-        fields = ('cart_id', 'attributes', 'product_id', 'quantity')
+        fields = ('cart_id', 'attributes', 'product_id',
+                  'quantity', 'added_on', 'buy_now', 'item_id')
+
+
+class UpdateShoppingcartSerializer(ShoppingcartSerializer):
+
+    def update(self, instance, validated_data):
+        """update quantity in shopping cart
+        Args:
+            instance (obj): model instance
+            validated_data (dict): data to update
+        Returns:
+            Return the updated cart
+        """
+        instance.quantity = validated_data['quantity']
+        instance.save()
+        return instance
 
 
 class TaxSerializer(serializers.ModelSerializer):
@@ -130,6 +180,29 @@ class CreateCustomerSerializer(serializers.ModelSerializer):
         # or response, including fields specified explicitly above.
         fields = '__all__'
 
+    def to_representation(self, obj):
+        """
+        Overide the default django to_representation
+        """
+        return {"customer": {
+            "customer_id": obj.customer_id,
+            'email': obj.email,
+            'username': obj.username,
+            "address_1": obj.address_1,
+            "address_2": obj.address_2,
+            "city": obj.city,
+            "region": obj.region,
+            "postal_code": obj.postal_code,
+            "shipping_region_id": obj.shipping_region_id,
+            "credit_card": obj.credit_card,
+            "day_phone": obj.day_phone,
+            "eve_phone": obj.eve_phone,
+            "mob_phone": obj.mob_phone,
+        },
+            "accessToken": obj.token[0],
+            "expiresIn": obj.token[1]
+        }
+
     def create(self, validated_data):
         # Use the `create_user` method we wrote earlier to create a new user.
         return Customer.objects.create_user(**validated_data)
@@ -140,7 +213,7 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(max_length=128, write_only=True)
     token = serializers.ListField(read_only=True)
 
-    def validate(self, data):
+    def to_representation(self, data):
         """ The `validate` method is where we make sure that the current
          instance of `LoginSerializer` has "valid". In the case of logging a
          user in, this means validating that they've provided an email
@@ -159,7 +232,7 @@ class LoginSerializer(serializers.Serializer):
         # The `validate` method should return a dictionary of validated data.
         # This is the data that is passed to the `create` and `update` methods
         # that we will see later on.
-        return {
+        return {"customer": {
             "customer_id": user.customer_id,
             'email': user.email,
             'username': user.username,
@@ -173,7 +246,9 @@ class LoginSerializer(serializers.Serializer):
             "day_phone": user.day_phone,
             "eve_phone": user.eve_phone,
             "mob_phone": user.mob_phone,
-            'token': user.token,
+        },
+            "accessToken": user.token[0],
+            "expiresIn": user.token[1]
         }
 
 

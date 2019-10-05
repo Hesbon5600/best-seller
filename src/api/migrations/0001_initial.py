@@ -217,7 +217,7 @@ class Migration(migrations.Migration):
             name='ShoppingCart',
             fields=[
                 ('item_id', models.AutoField(primary_key=True, serialize=False)),
-                ('cart_id', models.CharField(max_length=32)),
+                ('cart_id', models.CharField(max_length=100)),
                 ('product_id', models.IntegerField()),
                 ('attributes', models.CharField(max_length=1000)),
                 ('quantity', models.IntegerField()),
