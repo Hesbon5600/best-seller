@@ -78,6 +78,8 @@ ORD_01 = Error(
     code="ORD_01", message="Don't exist order with this ID", _status=404)
 ORD_02 = Error(
     code="ORD_02", message="Don't exist order detail with this ID", _status=404)
+ATT_01 = Error(
+    code="ATT_01", message="Don't exist attribute this ID", _status=404)
 
 # Commons Errors
 COM_00 = Error(code="COM_00", message="There is something wrong", _status=500)
