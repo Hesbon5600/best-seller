@@ -1,6 +1,8 @@
 import re
 from . import errors
-from src.api.models import Customer, ShippingRegion, Product, ShoppingCart
+from src.api.models import (
+    Customer, ShippingRegion, Product,
+    ShoppingCart, Shipping, Tax)
 from django.contrib.auth import authenticate
 
 
@@ -186,12 +188,12 @@ def validate_cart_ids(id_, attribute):
     """
     error = None
     if attribute == 'cart_id' and \
-        not ShoppingCart.objects.filter(cart_id=id_).exists():
+            not ShoppingCart.objects.filter(cart_id=id_).exists():
         error = errors.handle(errors.SHP_01)
     if attribute == 'item_id' and \
-        not ShoppingCart.objects.filter(item_id=id_).exists():
+            not ShoppingCart.objects.filter(item_id=id_).exists():
         error = errors.Error(code="COM_10", message="Don't exist shopping cart item with this item_id",
-                         _status=400)
+                             _status=400)
     return error
 
 
@@ -273,4 +275,59 @@ def validate_shopping_cart_input(data):
     invalid = validate_shopping_cart_input_types(data)
     if invalid:
         error = invalid
+    return error
+
+
+def validate_shipping_id(id_):
+    """Validate the shipping id
+    Args:
+        id_ (int): shipping region id to be validated
+    Returns:
+        ValidationError: Raise the relevant validation error 
+        if the shipping id is invalid or does not exis
+    """
+    if not isinstance(id_, int):
+        return errors.handle(errors.USR_09)
+
+    if not Shipping.objects.filter(pk=id_).exists():
+        return errors.handle(errors.Error(
+            code="COM_10", message="Don't exist shipping with this ID", _status=400))
+
+
+def validate_tax_id(id_):
+    """Validate the tax id
+    Args:
+        id_ (int): tax region id to be validated
+    Returns:
+        ValidationError: Raise the relevant validation error 
+        if the tax id is invalid or does not exis
+    """
+    if not isinstance(id_, int):
+        return errors.handle(errors.USR_09)
+
+    if not Tax.objects.filter(pk=id_).exists():
+        return errors.handle(errors.Error(
+            code="COM_10", message="Don't exist tax with this ID", _status=400))
+
+
+def validate_order_input(data):
+    """Validate the order data
+    Args:
+        data (dict): the request data
+    Returns:
+        ValidationError: Raise the relevant validation error 
+        if the fields are missing or invalid
+    """
+    error = None
+    cart_id_err, shipping_id_err, tax_id_err = validate_field_required(
+        data, 'cart_id', 'COM_01'), validate_field_required(data, 'shipping_id', 'COM_01'),\
+        validate_field_required(data, 'tax_id', 'COM_01')
+    if cart_id_err or shipping_id_err or tax_id_err:
+        return cart_id_err or shipping_id_err or tax_id_err
+    invalid_cart = validate_cart_ids(data.get('cart_id', ''), 'cart_id')
+    invalid_shipping = validate_shipping_id(data.get('shipping_id', ''))
+    invalid_tax = validate_tax_id(data.get('tax_id', ''))
+
+    if invalid_cart or invalid_shipping or invalid_tax:
+        error = invalid_cart or invalid_shipping or invalid_tax
     return error

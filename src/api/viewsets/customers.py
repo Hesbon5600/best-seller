@@ -265,6 +265,9 @@ def update_credit_card(request):
     """    
     Update the credit card from customer
     """
+    if isinstance(user, AnonymousUser):
+        logger.error(errors.USR_10.message)
+        return errors.handle(errors.USR_10)
     logger.debug("Updating credit card")
     if 'credit_card' in request.data:
 

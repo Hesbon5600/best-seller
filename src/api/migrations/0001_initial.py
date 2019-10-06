@@ -123,6 +123,7 @@ class Migration(migrations.Migration):
                 ('shipped_on', models.DateTimeField(blank=True, null=True)),
                 ('status', models.IntegerField()),
                 ('comments', models.CharField(blank=True, max_length=255, null=True)),
+                ('cart_id', models.CharField(max_length=255)),
                 ('customer_id', models.IntegerField(blank=True, null=True)),
                 ('auth_code', models.CharField(blank=True, max_length=50, null=True)),
                 ('reference', models.CharField(blank=True, max_length=50, null=True)),
