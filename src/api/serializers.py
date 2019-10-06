@@ -76,6 +76,7 @@ class OrdersSerializer(serializers.ModelSerializer):
                 })
         data['order_items'] = order_items
         return data
+
     class Meta:
         model = Orders
         fields = '__all__'
@@ -195,14 +196,12 @@ class CreateCustomerSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True, write_only=True)
     username = serializers.CharField(required=True)
-    shipping_region_id = serializers.IntegerField(required=True)
     token = serializers.ListField(read_only=True)
-
     class Meta:
         model = Customer
         # List all of the fields that could possibly be included in a request
         # or response, including fields specified explicitly above.
-        fields = '__all__'
+        fields = ('email', 'password', 'username', 'token')
 
     def to_representation(self, obj):
         """
@@ -279,7 +278,7 @@ class LoginSerializer(serializers.Serializer):
 class UpdateCustomerSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         allow_blank=True, required=False, write_only=True)
-    name = serializers.CharField(allow_blank=True, required=False)
+    username = serializers.CharField(allow_blank=True, required=False)
     email = serializers.CharField(allow_blank=True, required=False)
     day_phone = serializers.CharField(allow_blank=True, required=False)
     eve_phone = serializers.CharField(allow_blank=True, required=False)
@@ -287,7 +286,8 @@ class UpdateCustomerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Customer
-        fields = '__all__'
+        fields = ('password', 'username', 'email',
+                  'day_phone', 'eve_phone', 'mob_phone')
 
 
 class SocialSerializer(serializers.Serializer):

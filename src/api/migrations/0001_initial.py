@@ -76,7 +76,7 @@ class Migration(migrations.Migration):
                 ('region', models.CharField(blank=True, max_length=100, null=True)),
                 ('postal_code', models.CharField(blank=True, max_length=100, null=True)),
                 ('country', models.CharField(blank=True, max_length=100, null=True)),
-                ('shipping_region_id', models.IntegerField()),
+                ('shipping_region_id', models.IntegerField(blank=True, null=True)),
                 ('day_phone', models.CharField(blank=True, max_length=100, null=True)),
                 ('eve_phone', models.CharField(blank=True, max_length=100, null=True)),
                 ('mob_phone', models.CharField(blank=True, max_length=100, null=True)),

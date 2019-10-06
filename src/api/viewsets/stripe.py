@@ -2,8 +2,10 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from django.contrib.auth.models import AnonymousUser
 
 from src.api import payments, errors
+from src.api.models import Product, Orders
 from src.api.payments import PaymentError
 import logging
 
@@ -32,7 +34,32 @@ def charge(request):
     """
     This method receive a front-end payment and create a charge.
     """
-    # TODO: place the code here
+    user = request.user
+    if isinstance(user, AnonymousUser):
+        logger.error(errors.USR_10.message)
+        return errors.handle(errors.USR_10)
+
+    data = request.data
+    order_id = data.get('order_id', '')
+    amount = data.get('amount', '')
+    currency = data.get('currency', '')
+    description = data.get('description', '')
+
+    try:
+        Orders.objects.get(pk=order_id)
+    except Orders.DoesNotExist:
+        return errors.handle(errors.ORD_01)
+    response = payments.create(amount=amount,
+                               order_id=order_id,
+                               currency=currency,
+                               description=description)
+    if response.status != 'succeeded':
+        err_data = response.__dict__
+        return Response(data={'message': err_data['message'],
+                              'status': err_data['status']
+                              }, status=err_data['status'])
+    response['message'] = 'Payment made successfully!'
+    return Response(data=response, status=200)
 
 
 @api_view(['POST'])
@@ -40,4 +67,9 @@ def webhooks(request):
     """
     Endpoint that provide a synchronization
     """
-    # TODO: place the code here
+    user = request.user
+    if isinstance(user, AnonymousUser):
+        logger.error(errors.USR_10.message)
+        return errors.handle(errors.USR_10)
+    response = payments.create_webhook()
+    return Response(data=response, status=201)

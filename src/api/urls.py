@@ -53,8 +53,8 @@ urlpatterns = [
     path('customer/address', update_address),
     path('customer/creditCard', update_credit_card),
 
+    path('customers/signup', create_customer, name="Create a customer"),
     path('customers', get_customer, name="Get a customer"),
-    path('customers', create_customer, name="Create a customer"),
     path('customers/login', token_obtain, name="Login a customer"),
     path('customers/facebook', SocialLoginView.as_view()),
 
