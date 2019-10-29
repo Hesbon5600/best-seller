@@ -19,7 +19,7 @@ django-rest-passwordreset==1.0.0
 djangorestframework==3.9.4
 djangorestframework-simplejwt==4.3.0
 drf-yasg==1.17.0
-gunicorn==19.4.5
+gunicorn==19.5.0
 idna==2.8
 importlib-metadata==0.23
 inflection==0.3.1
